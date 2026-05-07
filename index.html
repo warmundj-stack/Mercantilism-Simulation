@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Age of Empires: Merchant Simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --parchment:#f4edd8;--parchment-dark:#e8d9b8;--ink:#2a1f0e;--ink-light:#5a4a2e;
+    --ink-faint:#8a7a5e;--gold:#b8860b;--gold-light:#d4a017;--red-seal:#8b1a1a;
+    --empire-Spain:#c41e3a;--empire-Portugal:#006600;--empire-France:#003087;
+    --empire-Britain:#6a0dad;--empire-Netherlands:#ff6600;
+    --success:#2d6a2d;--danger:#8b1a1a;--border-dark:#6b5a3e;--border-light:#c4a86e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#1a1208;font-family:'Crimson Pro',Georgia,serif;color:var(--ink);min-height:100vh;
+    background-image:radial-gradient(ellipse at 20% 50%,rgba(184,134,11,.08) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(139,26,26,.08) 0%,transparent 50%);}
+  .app-wrapper{max-width:1100px;margin:0 auto;padding:20px;}
+  .panel{background:var(--parchment);border:2px solid var(--border-dark);border-radius:4px;position:relative;box-shadow:4px 4px 0 rgba(0,0,0,.4),inset 0 0 40px rgba(139,90,20,.1);}
+  .panel::before{content:'';position:absolute;inset:4px;border:1px solid var(--border-light);border-radius:2px;pointer-events:none;}
+  .panel-inner{padding:20px 24px;}
+  .game-header{text-align:center;padding:20px 24px 16px;border-bottom:2px solid var(--border-dark);background:linear-gradient(180deg,#2a1f0e 0%,#1a1208 100%);color:var(--gold-light);border-radius:4px 4px 0 0;margin-bottom:16px;}
+  .game-title{font-family:'IM Fell English',serif;font-size:28px;letter-spacing:2px;color:var(--gold-light);text-shadow:0 0 20px rgba(212,160,23,.4);margin-bottom:4px;}
+  .game-subtitle{font-size:13px;color:#c4a86e;letter-spacing:3px;text-transform:uppercase;font-family:'Courier Prime',monospace;}
+  .phase-badge{display:inline-block;background:var(--ink);color:var(--gold-light);font-family:'Courier Prime',monospace;font-size:11px;padding:3px 10px;border-radius:2px;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px;}
+  h2{font-family:'IM Fell English',serif;font-size:18px;color:var(--ink);margin-bottom:8px;}
+  h3{font-family:'IM Fell English',serif;font-size:15px;color:var(--ink-light);margin-bottom:6px;}
+  p{font-size:15px;line-height:1.6;color:var(--ink-light);margin-bottom:8px;}
+  .btn{font-family:'Courier Prime',monospace;font-size:12px;letter-spacing:1px;text-transform:uppercase;padding:8px 18px;border:1.5px solid var(--border-dark);background:var(--parchment-dark);color:var(--ink);cursor:pointer;border-radius:2px;transition:all .15s;}
+  .btn:hover{background:var(--ink);color:var(--gold-light);border-color:var(--gold);}
+  .btn-primary{background:var(--ink);color:var(--gold-light);border-color:var(--gold);}
+  .btn-primary:hover{background:var(--gold);color:var(--ink);}
+  .btn-success{border-color:var(--success);color:var(--success);}
+  .btn-success:hover{background:var(--success);color:var(--parchment);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .empire-tag{display:inline-block;font-family:'Courier Prime',monospace;font-size:10px;padding:2px 8px;border-radius:2px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:white;}
+  .empire-Spain{background:var(--empire-Spain);}.empire-Portugal{background:var(--empire-Portugal);}
+  .empire-France{background:var(--empire-France);}.empire-Britain{background:var(--empire-Britain);}
+  .empire-Netherlands{background:var(--empire-Netherlands);}
+  .stat-card{background:var(--parchment-dark);border:1px solid var(--border-light);border-radius:3px;padding:10px 14px;text-align:center;}
+  .stat-label{font-family:'Courier Prime',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-faint);margin-bottom:4px;}
+  .stat-value{font-family:'IM Fell English',serif;font-size:22px;color:var(--ink);}
+  .stat-value.gold{color:var(--gold);}.stat-value.danger{color:var(--red-seal);}.stat-value.success{color:var(--success);}
+  .divider{border:none;border-top:1px solid var(--border-light);margin:14px 0;}
+  .goods-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .goods-table th{background:var(--ink);color:var(--gold-light);font-family:'Courier Prime',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:6px 10px;text-align:left;}
+  .goods-table td{padding:7px 10px;border-bottom:1px solid var(--border-light);color:var(--ink-light);}
+  .goods-table tr:hover td{background:var(--parchment-dark);}
+  .trade-form{background:var(--parchment-dark);border:1px solid var(--border-light);border-radius:3px;padding:14px;margin-bottom:12px;}
+  select,input[type=number]{font-family:'Crimson Pro',serif;font-size:14px;padding:6px 10px;border:1px solid var(--border-dark);background:var(--parchment);color:var(--ink);border-radius:2px;width:100%;}
+  label{font-family:'Courier Prime',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-faint);display:block;margin-bottom:4px;}
+  .alert{padding:10px 14px;border-radius:3px;font-size:14px;margin-bottom:10px;border-left:3px solid;}
+  .alert-warning{background:#fdf3d0;border-color:var(--gold);color:#5a4a00;}
+  .alert-danger{background:#fde8e8;border-color:var(--red-seal);color:var(--red-seal);}
+  .alert-success{background:#e8f5e8;border-color:var(--success);color:var(--success);}
+  .alert-info{background:#e8eef8;border-color:#3456a0;color:#1a2d6e;}
+  .dice-container{display:flex;gap:12px;justify-content:center;margin:16px 0;}
+  .die{width:56px;height:56px;background:var(--parchment);border:2px solid var(--border-dark);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'IM Fell English',serif;font-size:26px;color:var(--ink);box-shadow:2px 2px 0 rgba(0,0,0,.2);transition:all .3s;}
+  .die.rolling{animation:roll .5s ease-out;}
+  .die.good{border-color:var(--success);color:var(--success);}.die.bad{border-color:var(--red-seal);color:var(--red-seal);}
+  @keyframes roll{0%{transform:rotate(0deg) scale(1.2);}50%{transform:rotate(180deg) scale(.9);}100%{transform:rotate(360deg) scale(1);}}
+  .result-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:3px;margin-bottom:6px;font-size:14px;}
+  .result-row.pass{background:#e8f5e8;color:var(--success);}.result-row.fail{background:#fde8e8;color:var(--red-seal);}
+  .result-icon{font-size:18px;}
+  .score-row{display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border-light);font-size:14px;gap:10px;}
+  .score-rank{font-family:'IM Fell English',serif;font-size:18px;color:var(--ink-faint);width:24px;text-align:center;}
+  .score-rank.first{color:var(--gold);}.score-name{flex:1;font-weight:600;}
+  .score-location{color:var(--ink-faint);font-size:12px;font-family:'Courier Prime',monospace;}
+  .score-amount{font-family:'IM Fell English',serif;font-size:18px;color:var(--gold);}
+  .screen{display:none;}.screen.active{display:block;}
+  .log-entry{font-size:13px;padding:5px 8px;border-bottom:1px solid var(--border-light);font-family:'Courier Prime',monospace;color:var(--ink-light);}
+  .log-entry.profit{color:var(--success);}.log-entry.loss{color:var(--red-seal);}
+  .round-pip{width:28px;height:8px;border-radius:2px;background:var(--parchment-dark);border:1px solid var(--border-light);}
+  .round-pip.done{background:var(--gold);border-color:var(--gold);}.round-pip.current{background:var(--ink);border-color:var(--ink);}
+  .round-indicator{display:flex;gap:6px;margin-bottom:12px;}
+  .region-badge{display:inline-flex;align-items:center;background:var(--parchment-dark);border:1px solid var(--border-light);border-radius:2px;padding:2px 8px;font-family:'Courier Prime',monospace;font-size:10px;color:var(--ink-faint);letter-spacing:1px;}
+  .trade-summary-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-light);font-size:13px;align-items:center;}
+  .tab-bar{display:flex;gap:0;border-bottom:2px solid var(--border-dark);margin-bottom:16px;}
+  .tab-btn{font-family:'Courier Prime',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:8px 16px;border:none;background:transparent;color:var(--ink-faint);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;}
+  .tab-btn:hover{color:var(--ink);}.tab-btn.active{color:var(--ink);border-bottom-color:var(--gold);}
+  .tab-content{display:none;}.tab-content.active{display:block;}
+  .scrollable{max-height:260px;overflow-y:auto;}
+  .inv-chip{display:inline-block;background:var(--parchment);border:1px solid var(--border-light);border-radius:2px;padding:2px 8px;font-size:12px;margin:2px;text-transform:capitalize;}
+  @media(max-width:700px){.grid-2,.grid-3{grid-template-columns:1fr;}.trade-summary-row{grid-template-columns:1fr 1fr;}.game-title{font-size:20px;}}
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+<!-- HEADER -->
+<div class="panel" style="margin-bottom:16px;">
+  <div class="game-header">
+    <div class="game-title">&#9875; Age of Empires: The Merchant's Ledger &#9875;</div>
+    <div class="game-subtitle">A Mercantilism Simulation &middot; 16th&ndash;17th Century World Trade</div>
+  </div>
+  <div class="panel-inner" style="padding:12px 24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div id="header-group-info" style="display:none;">
+        <div class="phase-badge" id="header-phase">Setup</div>
+        <div style="font-size:13px;color:var(--ink-faint);font-family:'Courier Prime',monospace;" id="header-group-name"></div>
+      </div>
+      <div id="header-stats" style="display:none;display:flex;gap:12px;flex-wrap:wrap;">
+        <div class="stat-card" style="min-width:90px;"><div class="stat-label">Treasury</div><div class="stat-value gold" id="hdr-treasury">&mdash;</div></div>
+        <div class="stat-card" style="min-width:90px;"><div class="stat-label">Round</div><div class="stat-value" id="hdr-round">&mdash;</div></div>
+        <div class="stat-card" style="min-width:90px;"><div class="stat-label">Seized</div><div class="stat-value danger" id="hdr-seized">&mdash;</div></div>
+      </div>
+      <div id="teacher-btn-wrap"><button class="btn" onclick="showScreen('teacher')" style="font-size:10px;">&#9881; Teacher</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- TEACHER PANEL -->
+<div id="screen-teacher" class="screen active panel">
+  <div class="panel-inner">
+    <h2>&#9881; Teacher Control Panel</h2>
+    <p>Configure the simulation for your class. Assign groups, set parameters, and manage rounds from here.</p>
+    <div id="back-to-round-wrap" style="display:none;margin-bottom:12px;">
+      <div class="alert alert-warning" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:0;">
+        <span>&#9888; A simulation is in progress. Student work is saved.</span>
+        <button class="btn btn-primary" onclick="returnToRound()" style="white-space:nowrap;">&#8592; Return to Round</button>
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('tab-setup')">Class Setup</button>
+      <button class="tab-btn" onclick="switchTab('tab-market')">Market Prices</button>
+      <button class="tab-btn" onclick="switchTab('tab-scoreboard')">Scoreboard</button>
+      <button class="tab-btn" onclick="switchTab('tab-reference')">Reference</button>
+    </div>
+    <div id="tab-setup" class="tab-content active">
+      <div class="grid-2" style="gap:16px;">
+        <div>
+          <h3>Simulation Settings</h3>
+          <div style="margin-bottom:12px;"><label>Number of Groups (5&ndash;10, one per empire minimum)</label><input type="number" id="num-groups" min="5" max="10" value="5" style="width:80px;"></div>
+          <div style="margin-bottom:12px;"><label>Number of Trade Rounds</label><input type="number" id="num-rounds" min="2" max="6" value="4" style="width:80px;"></div>
+          <div style="margin-bottom:12px;"><label>Starting Treasury (silver coins)</label><input type="number" id="start-treasury" min="100" max="1000" value="300" step="50" style="width:100px;"></div>
+          <div style="margin-bottom:12px;"><label>Outside-Empire Seizure Risk (%)</label><input type="number" id="seizure-chance" min="10" max="100" value="20" step="5" style="width:80px;"><span style="font-size:12px;color:var(--ink-faint);margin-left:6px;">% base risk (auto-increases each round)</span></div>
+          <button class="btn btn-primary" onclick="randomizeGroups()">&#127922; Randomly Assign Locations</button>
+        </div>
+        <div>
+          <h3>Group Assignments</h3>
+          <div id="group-assignment-list" class="scrollable"><p style="color:var(--ink-faint);font-size:13px;">Click "Randomly Assign Locations" to assign groups.</p></div>
+          <hr class="divider">
+          <button class="btn btn-success" onclick="startSimulation()" style="margin-top:8px;">&#9875; Begin Simulation</button>
+        </div>
+      </div>
+    </div>
+    <div id="tab-market" class="tab-content">
+      <h3>Current Market Prices</h3>
+      <p style="font-size:13px;">Prices fluctuate each round. Adjust before each round begins.</p>
+      <div class="scrollable"><table class="goods-table" id="market-price-table"></table></div>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <button class="btn" onclick="fluctuatePrices()">&#128202; Random Fluctuation</button>
+        <button class="btn" onclick="resetPrices()">&#8617; Reset Prices</button>
+      </div>
+    </div>
+    <div id="tab-scoreboard" class="tab-content">
+      <h3>Live Scoreboard</h3>
+      <div id="scoreboard-list"><p style="color:var(--ink-faint);font-size:13px;">Start simulation to see scores.</p></div>
+      <hr class="divider">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+        <div><label style="display:block;">Outside-Empire Seizure Risk (%)</label>
+        <input type="number" id="seizure-live" min="10" max="100" value="20" step="5" style="width:80px;" oninput="applySeizureChange()"></div>
+        <div style="font-size:13px;color:var(--ink-faint);padding-top:14px;">Change takes effect immediately for all groups.</div>
+      </div>
+      <button class="btn btn-primary" onclick="showFinalResults()">&#127942; Show Final Results</button>
+    </div>
+    <div id="tab-reference" class="tab-content">
+      <h3>Teacher Reference: Location Data</h3>
+      <p style="font-size:13px;margin-bottom:12px;">Each location's empire, tier, goods produced, exports, and high-demand imports.</p>
+      <div class="scrollable" id="reference-table-wrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- GROUP LOGIN -->
+<div id="screen-group-setup" class="screen panel">
+  <div class="panel-inner">
+    <div class="phase-badge">Phase I &mdash; Merchant's Charter</div>
+    <h2>Welcome, Merchants!</h2>
+    <p>Enter your group number to receive your location assignment and begin trading.</p>
+    <hr class="divider">
+    <div style="max-width:300px;">
+      <label>Your Group Number</label>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <input type="number" id="group-login-num" min="1" max="9" value="1" style="width:80px;">
+        <button class="btn btn-primary" onclick="loginGroup()">Enter &rarr;</button>
+      </div>
+    </div>
+    <hr class="divider">
+    <div id="group-login-error" class="alert alert-danger" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- MERCHANT CARD -->
+<div id="screen-merchant-card" class="screen panel">
+  <div class="panel-inner">
+    <div class="phase-badge">Your Merchant's Charter</div>
+    <div class="grid-2">
+      <div>
+        <h2 id="mc-location-name">&mdash;</h2>
+        <div style="margin-bottom:10px;" id="mc-empire-tag"></div>
+        <p id="mc-lore" style="font-style:italic;font-size:14px;color:var(--ink-faint);"></p>
+        <hr class="divider">
+        <div class="grid-2" style="gap:8px;">
+          <div><div class="stat-label">Tier</div><div style="font-family:'IM Fell English',serif;font-size:16px;" id="mc-tier"></div></div>
+          <div><div class="stat-label">Starting Treasury</div><div class="stat-value gold" id="mc-treasury"></div></div>
+        </div>
+        <hr class="divider">
+        <div><div class="stat-label" style="margin-bottom:6px;">Imperial Tax (within empire)</div><div id="mc-tax" style="font-size:14px;"></div></div>
+        <div style="margin-top:10px;"><div class="stat-label" style="margin-bottom:6px;">Outside-Empire Risk</div><div id="mc-risk" style="font-size:14px;color:var(--red-seal);"></div></div>
+      </div>
+      <div>
+        <h3>Your Port's Goods</h3>
+        <p style="font-size:13px;color:var(--ink-faint);">Your port sells specific goods. Locally produced goods are discounted. Ports pay a premium for goods they don't produce.</p>
+        <div id="mc-goods-list" style="margin:8px 0;"></div>
+        <hr class="divider">
+        <h3>Your Empire's Trade Network</h3>
+        <p style="font-size:13px;color:var(--ink-faint);">Trade within this network for low tax and low risk.</p>
+        <div id="mc-network-list"></div>
+      </div>
+    </div>
+    <hr class="divider">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="goToTrade()">&#128220; Enter the Trading Floor &rarr;</button>
+      <button class="btn" onclick="showScreen('teacher')">&#9881; Back to Teacher Panel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TRADING FLOOR -->
+<div id="screen-trade" class="screen panel">
+  <div class="panel-inner">
+    <div class="phase-badge" id="trade-phase-badge">Round 1 &mdash; Trading Floor</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+      <div>
+        <h2 id="trade-location-header">The Trading Floor</h2>
+        <div id="trade-round-indicator" class="round-indicator"></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;" id="trade-stat-cards"></div>
+    </div>
+    <div class="tab-bar" id="trade-tab-bar">
+      <button class="tab-btn active" id="tabbtn-buy" onclick="switchTab('ttab-buy')">Buy Goods</button>
+      <button class="tab-btn" id="tabbtn-sell" onclick="switchTab('ttab-sell')">Sell Goods</button>
+      <button class="tab-btn" id="tabbtn-plan" onclick="switchTab('ttab-plan')">My Trade Plan</button>
+      <button class="tab-btn" id="tabbtn-guide" onclick="switchTab('ttab-guide')">Port Guide</button>
+    </div>
+    <div id="ttab-buy" class="tab-content active">
+      <p style="font-size:13px;margin-bottom:10px;">Choose where to source goods. Within your empire is safer but may cost more. Buying from outside risks imperial attention.</p>
+      <div class="trade-form">
+        <div class="grid-3" style="gap:12px;">
+          <div><label>Source Location</label><select id="buy-source" onchange="updateBuyInfo()"></select></div>
+          <div><label>Good to Purchase</label><select id="buy-good" onchange="updateBuyInfo()"></select></div>
+          <div><label>Quantity (units)</label><input type="number" id="buy-qty" min="1" max="20" value="1" onchange="updateBuyInfo()"></div>
+        </div>
+        <div id="buy-cost-preview" class="alert alert-info" style="margin-top:10px;"></div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-primary" onclick="addBuyOrder()">+ Add to Plan</button>
+          <div id="buy-risk-flag" style="font-size:13px;color:var(--red-seal);display:none;">&#9888; Outside empire &mdash; risk of seizure!</div>
+        </div>
+      </div>
+    </div>
+    <div id="ttab-sell" class="tab-content">
+      <p style="font-size:13px;margin-bottom:10px;">Choose where to sell your goods. Distant or outside-empire markets fetch higher prices &mdash; but draw imperial scrutiny.</p>
+      <div class="trade-form">
+        <div class="grid-3" style="gap:12px;">
+          <div><label>Destination Market</label><select id="sell-dest" onchange="updateSellInfo()"></select></div>
+          <div><label>Good to Sell</label><select id="sell-good" onchange="updateSellInfo()"></select></div>
+          <div><label>Quantity</label><input type="number" id="sell-qty" min="1" max="20" value="1" onchange="updateSellInfo()"></div>
+        </div>
+        <div id="sell-revenue-preview" class="alert alert-info" style="margin-top:10px;"></div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-success" onclick="addSellOrder()">+ Add to Plan</button>
+          <div id="sell-risk-flag" style="font-size:13px;color:var(--red-seal);display:none;">&#9888; Outside empire &mdash; risk of seizure!</div>
+        </div>
+      </div>
+    </div>
+    <div id="ttab-plan" class="tab-content">
+      <h3>Your Trade Plan This Round</h3>
+      <p style="font-size:13px;color:var(--ink-faint);">Review your planned purchases and sales. When ready, submit your plan and roll the dice!</p>
+      <hr class="divider">
+      <div id="plan-buy-list"></div>
+      <div id="plan-sell-list"></div>
+      <div id="plan-summary" style="margin-top:12px;"></div>
+      <hr class="divider">
+      <button class="btn btn-primary" onclick="submitTradePlan()" id="btn-submit-plan">&#9875; Submit Plan &amp; Roll Dice &rarr;</button>
+    </div>
+    <div id="ttab-guide" class="tab-content">
+      <h3>Port Guide</h3>
+      <p style="font-size:13px;color:var(--ink-faint);margin-bottom:12px;">Best buying and selling prices at each port, and which empire each belongs to. Use this to plan your trade routes!</p>
+      <div class="scrollable" id="student-port-guide"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DICE -->
+<div id="screen-dice" class="screen panel">
+  <div class="panel-inner" style="text-align:center;">
+    <div class="phase-badge">Phase II &mdash; Fortune's Turn</div>
+    <h2 id="dice-title">The Dice Are Cast!</h2>
+    <p style="margin-bottom:20px;" id="dice-subtitle">The fates of your trading fleet are decided&hellip;</p>
+    <div class="dice-container" id="dice-display"></div>
+    <div id="dice-results" style="max-width:480px;margin:20px auto;text-align:left;"></div>
+    <div id="dice-summary" class="alert" style="max-width:480px;margin:0 auto 20px;text-align:left;display:none;"></div>
+    <button class="btn" onclick="rollAllDice()" id="btn-roll" style="margin-right:10px;">&#127922; Roll the Dice!</button>
+    <button class="btn btn-primary" onclick="applyDiceResults()" id="btn-apply-dice" style="display:none;">Collect Results &amp; Continue &rarr;</button>
+  </div>
+</div>
+
+<!-- ROUND SUMMARY -->
+<div id="screen-round-summary" class="screen panel">
+  <div class="panel-inner">
+    <div class="phase-badge" id="summary-phase">Round Summary</div>
+    <h2 id="summary-title">Round Complete!</h2>
+    <hr class="divider">
+    <div class="grid-2">
+      <div><h3>This Round's Ledger</h3><div id="summary-ledger"></div></div>
+      <div><h3>Running Totals</h3><div id="summary-totals"></div><hr class="divider"><h3>Trade Log</h3><div id="summary-log" class="scrollable"></div></div>
+    </div>
+    <hr class="divider">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-primary" id="btn-next-round" onclick="nextRound()">&rarr; Next Round</button>
+      <button class="btn" onclick="showScreen('teacher')">&#9881; Teacher Panel</button>
+    </div>
+  </div>
+</div>
+
+<!-- FINAL -->
+<div id="screen-final" class="screen panel">
+  <div class="panel-inner" style="text-align:center;">
+    <div class="phase-badge">Simulation Complete</div>
+    <h2 style="font-size:26px;margin-bottom:8px;">&#9875; The Counting House Closes &#9875;</h2>
+    <p style="margin-bottom:24px;font-style:italic;">The ledgers are balanced. Who has amassed the greatest fortune?</p>
+    <div id="final-scoreboard" style="max-width:560px;margin:0 auto 24px;"></div>
+    <div id="final-insights" class="alert alert-info" style="max-width:560px;margin:0 auto 20px;text-align:left;"></div>
+    <hr class="divider" style="max-width:560px;margin:20px auto;">
+    <button class="btn btn-primary" onclick="resetSimulation()">&larr; New Simulation</button>
+  </div>
+</div>
+
+</div>
+<script>
+const LOCATIONS=[
+  {id:'mexico',name:'New Spain (Mexico)',empire:'Spain',tier:'Semi-Periphery',
+   lore:'Rich in silver and tomatoes, New Spain mines the greatest deposits of precious metal in the world.',
+   exportGoods:['silver','tomatoes','coffee','lumber'],localGoods:['silver','tomatoes'],
+   taxRate:0.10,startBonus:0,produces:{silver:0.65,tomatoes:0.60},
+   importPremium:['spices','porcelain','tea','silk','cloth/clothing','sugar'],
+   specialBuy:'silver',specialSell:'spices'},
+  {id:'philippines',name:'The Philippines',empire:'Spain',tier:'Semi-Periphery',
+   lore:'Gateway to the Orient, the Philippines trades in silk, spices, and fine porcelain.',
+   exportGoods:['rice','porcelain','spices','silk','tea'],localGoods:['rice','spices'],
+   taxRate:0.10,startBonus:0,produces:{rice:0.60,spices:0.65},
+   importPremium:['silver','gold','lumber','cotton','cloth/clothing','rum'],
+   specialBuy:'silk',specialSell:'silver'},
+  {id:'brazil',name:'Brazil',empire:'Portugal',tier:'Semi-Periphery',
+   lore:"Brazil's vast plantations and forests supply sugar, cotton, and timber to Europe and beyond.",
+   exportGoods:['sugar','cotton','lumber','molasses','coffee','cocoa'],localGoods:['sugar','cotton','lumber'],
+   taxRate:0.10,startBonus:0,produces:{sugar:0.65,cotton:0.65,lumber:0.60},
+   importPremium:['silver','gold','spices','porcelain','silk','tea','cloth/clothing'],
+   specialBuy:'sugar',specialSell:'cloth/clothing'},
+  {id:'malacca',name:'Malacca',empire:'Portugal',tier:'Semi-Periphery',
+   lore:'The Straits of Malacca command all trade between the Indian Ocean and the South China Sea.',
+   exportGoods:['rice','porcelain','spices','silk','tea'],localGoods:['spices','tea'],
+   taxRate:0.10,startBonus:0,produces:{spices:0.65,tea:0.65},
+   importPremium:['silver','gold','lumber','cotton','rum','cloth/clothing'],
+   specialBuy:'tea',specialSell:'gold'},
+  {id:'haiti',name:'Saint-Domingue (Haiti)',empire:'France',tier:'Semi-Periphery',
+   lore:"The jewel of the Caribbean, Saint-Domingue's fertile plains produce sugar, molasses, and raw cotton.",
+   exportGoods:['sugar','molasses','cotton'],localGoods:['sugar','molasses'],
+   taxRate:0.12,startBonus:0,produces:{sugar:0.60,molasses:0.65},
+   importPremium:['cloth/clothing','rum','wooden ships','silver','spices','tea','lumber'],
+   specialBuy:'molasses',specialSell:'wooden ships'},
+  {id:'new_france',name:'New France (Canada)',empire:'France',tier:'Semi-Periphery',
+   lore:'The vast forests of New France supply Europe with the cheapest lumber and ships in the known world, though the colony itself imports almost everything else.',
+   exportGoods:['lumber','wooden ships','tomatoes'],localGoods:['lumber','wooden ships'],
+   taxRate:0.12,startBonus:0,produces:{lumber:0.35,'wooden ships':0.35},
+   importPremium:['sugar','molasses','rum','cloth/clothing','spices','silk','tea','silver','gold','coffee','cocoa'],
+   specialBuy:'wooden ships',specialSell:'rum'},
+  {id:'new_england',name:'New England',empire:'Britain',tier:'Semi-Periphery',
+   lore:"New England's harbors are famed for shipbuilding, distilleries, and the timber trade.",
+   exportGoods:['cloth/clothing','rum','lumber','tomatoes','wooden ships'],localGoods:['lumber','wooden ships','rum'],
+   taxRate:0.10,startBonus:0,produces:{lumber:0.60,'wooden ships':0.65,rum:0.65},
+   importPremium:['sugar','molasses','spices','silk','tea','porcelain','silver','gold'],
+   specialBuy:'rum',specialSell:'molasses'},
+  {id:'jamaica',name:'Jamaica',empire:'Britain',tier:'Semi-Periphery',
+   lore:"Jamaica's plantations pour sugar, rum, and molasses into the Atlantic trade.",
+   exportGoods:['sugar','molasses','rum','tomatoes','cotton'],localGoods:['sugar','rum','molasses'],
+   taxRate:0.10,startBonus:0,produces:{sugar:0.60,rum:0.65,molasses:0.65},
+   importPremium:['cloth/clothing','wooden ships','lumber','spices','silk','tea','silver','porcelain'],
+   specialBuy:'cotton',specialSell:'porcelain'},
+  {id:'new_york',name:'New Amsterdam (New York)',empire:'Netherlands',tier:'Semi-Periphery',
+   lore:'Dutch traders from New Amsterdam deal with every empire, caring more for profit than politics.',
+   exportGoods:['cloth/clothing','rum','lumber','tomatoes','wooden ships'],localGoods:['lumber','cloth/clothing'],
+   taxRate:0.08,startBonus:20,produces:{lumber:0.65,'cloth/clothing':0.65},
+   importPremium:['sugar','molasses','spices','silk','tea','porcelain','silver','gold','coffee','cocoa'],
+   specialBuy:'cloth/clothing',specialSell:'coffee'},
+  {id:'south_africa',name:'Cape Colony (South Africa)',empire:'Netherlands',tier:'Semi-Periphery',
+   lore:'The Cape of Good Hope is the crossroads of Eastern and Western trade routes.',
+   exportGoods:['gold','cotton','coffee','cocoa','wooden ships'],localGoods:['gold','coffee'],
+   taxRate:0.08,startBonus:20,produces:{gold:0.60,coffee:0.65},
+   importPremium:['spices','silk','tea','porcelain','cloth/clothing','lumber','rum','silver'],
+   specialBuy:'gold',specialSell:'cotton'}
+];
+const IMPERIAL_CORES={
+  Spain:{name:'Madrid (Spain)',buysWell:['silver','silk','spices','porcelain','cocoa'],premium:1.35},
+  Portugal:{name:'Lisbon (Portugal)',buysWell:['sugar','spices','silk','tea','porcelain','cotton'],premium:1.30},
+  France:{name:'Paris (France)',buysWell:['sugar','coffee','molasses','silk','cotton','rum'],premium:1.35},
+  Britain:{name:'London (Britain)',buysWell:['sugar','rum','tea','cotton','wooden ships','silk'],premium:1.30},
+  Netherlands:{name:'Amsterdam (Netherlands)',buysWell:['spices','silk','tea','coffee','porcelain','gold'],premium:1.40}
+};
+const PERIPHERY=[
+  {id:'west_africa',name:'West Africa',empire:'periphery',sells:['gold','cotton','rice'],buys:['cloth/clothing','rum','molasses','wooden ships'],sellMult:0.9,buyMult:1.25},
+  {id:'india',name:'India',empire:'periphery',sells:['cotton','spices','tea','silk'],buys:['silver','gold','lumber'],sellMult:0.9,buyMult:1.2},
+  {id:'china',name:'China',empire:'periphery',sells:['porcelain','tea','silk','spices'],buys:['silver','gold'],sellMult:0.85,buyMult:1.3}
+];
+const BASE_PRICES={
+  cotton:{buy:40,sell:55},'cloth/clothing':{buy:60,sell:80},sugar:{buy:35,sell:50},
+  molasses:{buy:20,sell:32},rum:{buy:30,sell:45},coffee:{buy:50,sell:70},
+  cocoa:{buy:45,sell:60},lumber:{buy:25,sell:36},'wooden ships':{buy:120,sell:160},
+  rice:{buy:20,sell:30},silver:{buy:70,sell:95},gold:{buy:90,sell:125},
+  porcelain:{buy:65,sell:88},spices:{buy:55,sell:78},tomatoes:{buy:15,sell:24},
+  tea:{buy:48,sell:68},silk:{buy:80,sell:112}
+};
+let state={numGroups:5,numRounds:4,startTreasury:300,seizureChance:20,currentRound:0,groups:[],prices:{},assignedLocations:[],activeGroupId:null,simStarted:false};
+function init(){state.prices=JSON.parse(JSON.stringify(BASE_PRICES));renderMarketTable();renderReferenceTable();showScreen('teacher');switchTab('tab-setup');}
+function showScreen(n){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+n).classList.add('active');
+  // Show 'Back to Round' banner on teacher screen if sim is underway
+  const btr=document.getElementById('back-to-round-wrap');
+  if(btr) btr.style.display=(n==='teacher'&&state.simStarted&&state.activeGroupId)?'block':'none';
+}
+function switchTab(id){
+  const p=document.getElementById(id).closest('.panel-inner,.screen');
+  p.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  p.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  p.querySelectorAll('.tab-btn').forEach(b=>{if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes(id))b.classList.add('active');});
+}
+function randomizeGroups(){
+  const n=parseInt(document.getElementById('num-groups').value)||5;
+  // Must have at least 1 colony per empire (5 empires), max 9 (all locations)
+  state.numGroups=Math.min(10,Math.max(5,n));document.getElementById('num-groups').value=state.numGroups;
+  const empires=['Spain','Portugal','France','Britain','Netherlands'];
+  // Shuffle one random colony from each empire first
+  function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
+  const assigned=[];
+  const used=new Set();
+  // Step 1: pick one random colony per empire (guarantees all 5 empires represented)
+  empires.forEach(emp=>{
+    const colonies=LOCATIONS.filter(l=>l.empire===emp);
+    const pick=shuffle([...colonies])[0];
+    assigned.push(pick.id);used.add(pick.id);
+  });
+  // Step 2: fill remaining slots from leftover colonies (shuffled)
+  const remaining=shuffle(LOCATIONS.filter(l=>!used.has(l.id)).map(l=>l.id));
+  const extras=remaining.slice(0,state.numGroups-5);
+  const allAssigned=shuffle([...assigned,...extras]);
+  state.assignedLocations=allAssigned;
+  const list=document.getElementById('group-assignment-list');list.innerHTML='';
+  for(let g=1;g<=state.numGroups;g++){
+    const loc=LOCATIONS.find(l=>l.id===state.assignedLocations[g-1]);
+    const div=document.createElement('div');div.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-light);';
+    div.innerHTML='<span style="font-family:Courier Prime,monospace;font-size:12px;color:var(--ink-faint);min-width:60px;">Group '+g+'</span><span class="empire-tag empire-'+loc.empire+'" style="font-size:9px;">'+loc.empire+'</span><span style="font-size:14px;">'+loc.name+'</span>';
+    list.appendChild(div);
+  }
+}
+function startSimulation(){
+  if(state.assignedLocations.length<2){alert('Please assign groups first!');return;}
+  state.numRounds=parseInt(document.getElementById('num-rounds').value)||4;
+  state.startTreasury=parseInt(document.getElementById('start-treasury').value)||300;
+  state.seizureChance=parseInt(document.getElementById('seizure-chance').value)||30;
+  state.groups=[];
+  for(let g=1;g<=state.numGroups;g++){
+    const loc=LOCATIONS.find(l=>l.id===state.assignedLocations[g-1]);
+    state.groups.push({id:g,name:'Group '+g,locationId:loc.id,treasury:state.startTreasury+loc.startBonus,seized:0,inventory:{},tradeLog:[],currentPlan:{buys:[],sells:[]},roundResults:[]});
+  }
+  state.currentRound=0;state.simStarted=true;
+  // Sync live seizure input in scoreboard tab
+  const sl=document.getElementById('seizure-live');if(sl)sl.value=state.seizureChance;
+  updateScoreboard();showScreen('group-setup');
+}
+function loginGroup(){
+  const n=parseInt(document.getElementById('group-login-num').value);
+  const group=state.groups.find(g=>g.id===n);
+  if(!group){const e=document.getElementById('group-login-error');e.style.display='block';e.textContent='Group '+n+' not found.';return;}
+  state.activeGroupId=n;showMerchantCard(group);
+}
+function showMerchantCard(group){
+  const loc=LOCATIONS.find(l=>l.id===group.locationId);const core=IMPERIAL_CORES[loc.empire];
+  document.getElementById('mc-location-name').textContent=loc.name;
+  document.getElementById('mc-empire-tag').innerHTML='<span class="empire-tag empire-'+loc.empire+'">'+loc.empire+'</span> <span class="region-badge">'+loc.tier+'</span>';
+  document.getElementById('mc-lore').textContent=loc.lore;document.getElementById('mc-tier').textContent=loc.tier;
+  document.getElementById('mc-treasury').textContent=group.treasury+' 🪙';
+  document.getElementById('mc-tax').innerHTML='<strong>'+Math.round(loc.taxRate*100)+'%</strong> tax on goods sold to imperial core';
+  document.getElementById('mc-risk').innerHTML='<strong>'+state.seizureChance+'%</strong> base chance of seizure when trading outside your empire';
+  const gl=document.getElementById('mc-goods-list');
+  gl.innerHTML='<div style="font-size:11px;font-family:Courier Prime,monospace;color:var(--ink-faint);margin-bottom:6px;letter-spacing:1px;text-transform:uppercase;">Locally Produced (discounted)</div>';
+  loc.localGoods.forEach(g=>{
+    const p=state.prices[g]||BASE_PRICES[g];if(!p)return;
+    const disc=Math.round(p.buy*(loc.produces[g]||0.65));
+    const el=document.createElement('div');el.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:4px 8px;background:var(--parchment-dark);border-radius:2px;margin-bottom:4px;font-size:13px;';
+    el.innerHTML='<span style="text-transform:capitalize;">'+g+'</span><span style="font-family:Courier Prime,monospace;color:var(--success);">Buy: '+disc+' 🪙</span>';gl.appendChild(el);
+  });
+  const rx=loc.exportGoods.filter(g=>!loc.localGoods.includes(g));
+  if(rx.length){
+    const hdr=document.createElement('div');hdr.style.cssText='font-size:11px;font-family:Courier Prime,monospace;color:var(--ink-faint);margin:8px 0 4px;letter-spacing:1px;text-transform:uppercase;';hdr.textContent='Also Available Here';gl.appendChild(hdr);
+    rx.forEach(g=>{const p=state.prices[g]||BASE_PRICES[g];if(!p)return;const el=document.createElement('div');el.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:4px 8px;background:var(--parchment-dark);border-radius:2px;margin-bottom:4px;font-size:13px;opacity:.8;';el.innerHTML='<span style="text-transform:capitalize;">'+g+'</span><span style="font-family:Courier Prime,monospace;color:var(--ink-faint);">Buy: '+Math.round(p.buy*1.05)+' 🪙</span>';gl.appendChild(el);});
+  }
+  // Special buy deal
+  const sb=document.createElement('div');sb.style.cssText='font-size:11px;font-family:Courier Prime,monospace;color:var(--success);margin:8px 0 4px;letter-spacing:1px;text-transform:uppercase;';sb.textContent='★ Your Best Buy Deal (cheapest anywhere)';gl.appendChild(sb);
+  if(loc.specialBuy){const pSB=state.prices[loc.specialBuy]||BASE_PRICES[loc.specialBuy];if(pSB){const elSB=document.createElement('div');elSB.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:4px 8px;background:#e8f5e8;border:1px solid var(--success);border-radius:2px;margin-bottom:4px;font-size:13px;';elSB.innerHTML='<span style="text-transform:capitalize;">'+loc.specialBuy+'</span><span style="font-family:Courier Prime,monospace;color:var(--success);">Buy: '+Math.round(pSB.buy*0.28)+' 🪙 (best price!)</span>';gl.appendChild(elSB);}}
+  // Special sell deal
+  const hi=document.createElement('div');hi.style.cssText='font-size:11px;font-family:Courier Prime,monospace;color:var(--gold);margin:8px 0 4px;letter-spacing:1px;text-transform:uppercase;';hi.textContent='★ High-Demand Imports (sell here for premium)';gl.appendChild(hi);
+  loc.importPremium.slice(0,4).forEach(g=>{const p=state.prices[g]||BASE_PRICES[g];if(!p)return;const el=document.createElement('div');el.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:4px 8px;background:#ede0b8;border-radius:2px;margin-bottom:4px;font-size:13px;';el.innerHTML='<span style="text-transform:capitalize;">'+g+'</span><span style="font-family:Courier Prime,monospace;color:var(--gold);">Sell: ~'+Math.round(p.sell*1.18)+' 🪙</span>';gl.appendChild(el);});
+  const nl=document.getElementById('mc-network-list');nl.innerHTML='';
+  LOCATIONS.filter(l=>l.empire===loc.empire).forEach(el=>{const d=document.createElement('div');d.style.cssText='font-size:13px;padding:3px 0;color:var(--ink-light);';d.textContent='• '+el.name+(el.id===loc.id?' (You)':'');nl.appendChild(d);});
+  const cd=document.createElement('div');cd.style.cssText='font-size:13px;padding:3px 0;color:var(--gold);font-weight:600;';cd.textContent='★ '+core.name+' (Imperial Core)';nl.appendChild(cd);
+  updateHeaderBar(group);showScreen('merchant-card');
+}
+function updateHeaderBar(group){
+  if(!group)return;const loc=LOCATIONS.find(l=>l.id===group.locationId);
+  document.getElementById('header-group-info').style.display='block';document.getElementById('header-stats').style.display='flex';
+  document.getElementById('header-phase').textContent='Round '+state.currentRound+' of '+state.numRounds;
+  document.getElementById('header-group-name').textContent=group.name+' — '+loc.name;
+  document.getElementById('hdr-treasury').textContent=group.treasury+' 🪙';
+  document.getElementById('hdr-round').textContent=state.currentRound+'/'+state.numRounds;
+  document.getElementById('hdr-seized').textContent=group.seized+' 🪙';
+  // Hide teacher button once simulation is underway
+  const tbw=document.getElementById('teacher-btn-wrap');if(tbw)tbw.style.display='none';
+}
+function returnToRound(){
+  const group=state.groups.find(g=>g.id===state.activeGroupId);
+  if(!group)return;
+  // If there are completed rounds, show the most recent round summary
+  const lastLog=group.tradeLog.length?group.tradeLog[group.tradeLog.length-1]:null;
+  if(lastLog&&lastLog.round>0){
+    // Reconstruct a res object from the log entry for showRoundSummary
+    const savedRound=state.currentRound;
+    state.currentRound=lastLog.round;
+    showRoundSummary(group,{
+      totalCost:lastLog.cost,
+      totalRevenue:lastLog.revenue,
+      weatherLoss:lastLog.weatherLoss,
+      pirateLoss:lastLog.pirateLoss,
+      seizureLoss:lastLog.seizureLoss,
+      net:lastLog.net
+    });
+    state.currentRound=savedRound;
+  } else {
+    // No completed rounds yet — return to trade screen
+    renderTradeScreen(group);
+    showScreen('trade');
+    switchTab('ttab-buy');
+  }
+}
+function goToTrade(){
+  state.currentRound=Math.max(state.currentRound,1);
+  // Ensure seizure risk is set correctly for the current round on entry
+  state.seizureChance=Math.min((state.currentRound+1)*10,100);
+  const sl=document.getElementById('seizure-live');if(sl)sl.value=state.seizureChance;
+  const group=state.groups.find(g=>g.id===state.activeGroupId);
+  group.currentPlan={buys:[],sells:[]};renderTradeScreen(group);showScreen('trade');switchTab('ttab-buy');
+}
+function renderTradeScreen(group){
+  const loc=LOCATIONS.find(l=>l.id===group.locationId);
+  document.getElementById('trade-location-header').textContent=loc.name+' — Round '+state.currentRound;
+  document.getElementById('trade-phase-badge').textContent='Round '+state.currentRound+' of '+state.numRounds+' — Trading Floor';
+  const pip=document.getElementById('trade-round-indicator');pip.innerHTML='';
+  for(let i=1;i<=state.numRounds;i++){const d=document.createElement('div');d.className='round-pip'+(i<state.currentRound?' done':i===state.currentRound?' current':'');pip.appendChild(d);}
+  const invTotal=Object.values(group.inventory).reduce((s,q)=>s+q,0);
+  document.getElementById('trade-stat-cards').innerHTML='<div class="stat-card"><div class="stat-label">Treasury</div><div class="stat-value gold">'+group.treasury+' 🪙</div></div><div class="stat-card"><div class="stat-label">In Hold</div><div class="stat-value">'+invTotal+' units</div></div><div class="stat-card"><div class="stat-label">Tax Rate</div><div class="stat-value">'+Math.round(loc.taxRate*100)+'%</div></div><div class="stat-card"><div class="stat-label">Outside Risk</div><div class="stat-value danger">'+state.seizureChance+'%</div></div>';
+  const bs=document.getElementById('buy-source');bs.innerHTML='';const sd=document.getElementById('sell-dest');sd.innerHTML='';
+  const allS=[...LOCATIONS.map(l=>({id:l.id,label:l.name,empire:l.empire,isOwn:(l.id===loc.id)})),...PERIPHERY.map(p=>({id:p.id,label:p.name,empire:'periphery',isOwn:false}))];
+  allS.forEach(s=>{
+    const opt=document.createElement('option');opt.value=s.id;
+    const inE=s.empire===loc.empire;
+    opt.textContent=s.label+(s.isOwn?' (Your Port)':'')+(inE&&!s.isOwn?' ✓ Same Empire':'')+(s.empire==='periphery'?' ⚠':!inE?' ⚠ Foreign':'');
+    bs.appendChild(opt);const opt2=opt.cloneNode(true);sd.appendChild(opt2);
+  });
+  Object.entries(IMPERIAL_CORES).forEach(([emp,core])=>{const opt=document.createElement('option');opt.value='core_'+emp;opt.textContent=core.name+(emp===loc.empire?' ★ Your Core':' ⚠ Foreign Core');sd.appendChild(opt);});
+  sd.onchange=updateSellInfo;bs.onchange=updateBuyInfo;
+  renderStudentPortGuide();
+  updateBuyInfo();updateSellInfo();renderPlan(group);
+}
+function isOutsideEmpire(sid,myEmpire){if(sid.startsWith('core_'))return sid.replace('core_','')!==myEmpire;const loc=LOCATIONS.find(l=>l.id===sid);if(loc)return loc.empire!==myEmpire;return true;}
+function getAvailableGoods(sid){const s=LOCATIONS.find(l=>l.id===sid);if(s)return s.exportGoods;const p=PERIPHERY.find(p=>p.id===sid);if(p)return p.sells;return Object.keys(BASE_PRICES);}
+function getAvailableToSell(group){
+  // Returns {good:qty} = persistent inventory + planned buys - planned sells
+  const a={};
+  Object.entries(group.inventory).forEach(([g,q])=>{a[g]=(a[g]||0)+q;});
+  group.currentPlan.buys.forEach(b=>{a[b.good]=(a[b.good]||0)+b.qty;});
+  group.currentPlan.sells.forEach(s=>{a[s.good]=(a[s.good]||0)-s.qty;});
+  return a;
+}
+function getSellableGoods(destId){
+  const group=state.groups.find(g=>g.id===state.activeGroupId);
+  const avail=group?getAvailableToSell(group):{};
+  const inStock=Object.keys(avail).filter(g=>avail[g]>0);
+  if(!inStock.length)return[];
+  if(destId.startsWith('core_'))return inStock;
+  const dl=LOCATIONS.find(l=>l.id===destId);
+  if(dl){const prem=inStock.filter(g=>dl.importPremium.includes(g));const oth=inStock.filter(g=>!dl.importPremium.includes(g));return[...prem,...oth];}
+  const per=PERIPHERY.find(p=>p.id===destId);if(per)return inStock.filter(g=>per.buys.includes(g));
+  return inStock;
+}
+function getBuyPrice(sid,good,myLocId){
+  const myLoc=LOCATIONS.find(l=>l.id===myLocId);const p=state.prices[good];if(!p)return 0;const base=p.buy;
+  const srcLoc=LOCATIONS.find(l=>l.id===sid);
+  if(srcLoc){
+    if(!srcLoc.exportGoods.includes(good))return 0;
+    // specialBuy at own port: absolute cheapest anywhere
+    if(sid===myLocId&&myLoc.specialBuy===good)return Math.round(base*0.28);
+    // Own port local good (non-special)
+    if(sid===myLocId&&myLoc.localGoods.includes(good))return Math.round(base*(myLoc.produces[good]||0.65));
+    // Buying from another port where it is their specialBuy
+    if(srcLoc.specialBuy===good)return Math.round(base*0.45);
+    // Another port's local good
+    if(srcLoc.localGoods.includes(good))return Math.round(base*0.82);
+    return Math.round(base*1.05);
+  }
+  const per=PERIPHERY.find(p=>p.id===sid);if(per){if(per.sells.includes(good))return Math.round(base*per.sellMult);return 0;}return base;
+}
+function getSellPrice(did,good,myEmpire){
+  const p=state.prices[good];if(!p)return 0;const base=p.sell;
+  if(did.startsWith('core_')){const emp=did.replace('core_','');const core=IMPERIAL_CORES[emp];let price=core.buysWell.includes(good)?Math.round(base*core.premium):Math.round(base*0.92);if(emp===myEmpire){const ag=state.groups.find(g=>g.id===state.activeGroupId);const ml=ag?LOCATIONS.find(l=>l.id===ag.locationId):null;price=Math.round(price*(1-(ml?ml.taxRate:0.12)));}return price;}
+  const dl=LOCATIONS.find(l=>l.id===did);
+  if(dl){
+    // specialSell: this port pays the absolute highest price for this good
+    if(dl.specialSell===good)return Math.round(base*1.45);
+    // importPremium: high demand
+    if(dl.importPremium.includes(good))return Math.round(base*1.18);
+    return Math.round(base*0.88);
+  }
+  const per=PERIPHERY.find(p=>p.id===did);if(per&&per.buys.includes(good))return Math.round(base*per.buyMult);return 0;
+}
+function getLocationName(id){if(id.startsWith('core_'))return IMPERIAL_CORES[id.replace('core_','')].name;const l=LOCATIONS.find(l=>l.id===id);if(l)return l.name;const p=PERIPHERY.find(p=>p.id===id);if(p)return p.name;return id;}
+function updateBuyGoodsForSource(){
+  const sid=document.getElementById('buy-source').value;const goods=getAvailableGoods(sid);
+  const sel=document.getElementById('buy-good');const prev=sel.value;sel.innerHTML='';
+  goods.forEach(g=>{const o=document.createElement('option');o.value=g;o.textContent=g.charAt(0).toUpperCase()+g.slice(1);if(g===prev)o.selected=true;sel.appendChild(o);});
+  if(!goods.includes(sel.value)&&goods.length)sel.value=goods[0];
+}
+function updateSellGoodsForDest(){
+  const did=document.getElementById('sell-dest').value;const goods=getSellableGoods(did);
+  const sel=document.getElementById('sell-good');const prev=sel.value;sel.innerHTML='';
+  goods.forEach(g=>{const o=document.createElement('option');o.value=g;o.textContent=g.charAt(0).toUpperCase()+g.slice(1);if(g===prev)o.selected=true;sel.appendChild(o);});
+  if(!goods.includes(sel.value)&&goods.length)sel.value=goods[0];
+}
+function updateBuyInfo(){
+  updateBuyGoodsForSource();const group=state.groups.find(g=>g.id===state.activeGroupId);if(!group)return;
+  const myLoc=LOCATIONS.find(l=>l.id===group.locationId);const sid=document.getElementById('buy-source').value;
+  const good=document.getElementById('buy-good').value;if(!good)return;
+  const qty=parseInt(document.getElementById('buy-qty').value)||1;const price=getBuyPrice(sid,good,group.locationId);
+  const outside=isOutsideEmpire(sid,myLoc.empire);
+  document.getElementById('buy-risk-flag').style.display=(outside&&price>0)?'block':'none';
+  if(price<=0){document.getElementById('buy-cost-preview').innerHTML='<span style="color:var(--red-seal);">This good is not available at this port.</span>';return;}
+  const srcLoc=LOCATIONS.find(l=>l.id===sid);const isLocal=srcLoc&&srcLoc.localGoods.includes(good);
+  const isSpecialBuy=sid===group.locationId&&myLoc.specialBuy===good;
+  const isOtherSpecial=sid!==group.locationId&&srcLoc&&srcLoc.specialBuy===good;
+  const spent2=group.currentPlan.buys.reduce((s,b)=>s+b.total,0);
+  const remaining=group.treasury-spent2;
+  const total2=price*qty;
+  const overBudget=total2>remaining;
+  document.getElementById('buy-cost-preview').innerHTML='Unit cost: <strong>'+price+' 🪙</strong> &nbsp;|&nbsp; Total: <strong>'+total2+' 🪙</strong> &nbsp;|&nbsp; Budget left: <strong style="color:'+(remaining-total2>=0?'var(--success)':'var(--red-seal)')+';">'+( remaining-total2)+' 🪙</strong>'+(isSpecialBuy?' &nbsp;|&nbsp; <span style="color:var(--success);">★ Best buy price anywhere!</span>':isOtherSpecial?' &nbsp;|&nbsp; <span style="color:var(--success);">★ Special deal at this port</span>':isLocal?' &nbsp;|&nbsp; <span style="color:var(--success);">★ Locally produced</span>':'')+(overBudget?'<br><span style="color:var(--red-seal);">⚠ Exceeds your budget</span>':outside?' &nbsp;|&nbsp; <span style="color:var(--red-seal);">Risk: '+state.seizureChance+'%</span>':' &nbsp;|&nbsp; <span style="color:var(--success);">Safe ✓</span>');
+}
+function updateSellInfo(){
+  updateSellGoodsForDest();const group=state.groups.find(g=>g.id===state.activeGroupId);if(!group)return;
+  const myLoc=LOCATIONS.find(l=>l.id===group.locationId);const did=document.getElementById('sell-dest').value;
+  const good=document.getElementById('sell-good').value;
+  if(!good){document.getElementById('sell-revenue-preview').innerHTML='<span style="color:var(--ink-faint);">No goods in hold to sell.</span>';return;}
+  const avail=getAvailableToSell(group);const maxQty=avail[good]||0;
+  const qty=Math.min(parseInt(document.getElementById('sell-qty').value)||1,maxQty);
+  const price=getSellPrice(did,good,myLoc.empire);
+  const outside=isOutsideEmpire(did,myLoc.empire);const dl=LOCATIONS.find(l=>l.id===did);const isPremium=dl&&dl.importPremium.includes(good);
+  document.getElementById('sell-risk-flag').style.display=(outside&&price>0)?'block':'none';
+  if(price<=0){document.getElementById('sell-revenue-preview').innerHTML='<span style="color:var(--red-seal);">This destination will not buy this good.</span>';return;}
+  const isSpecialSell=dl&&dl.specialSell===good;
+  document.getElementById('sell-revenue-preview').innerHTML='In hold: <strong>'+maxQty+' units</strong> &nbsp;|&nbsp; Unit price: <strong>'+price+' 🪙</strong> &nbsp;|&nbsp; Total: <strong>'+(price*qty)+' 🪙</strong>'+(isSpecialSell?' &nbsp;|&nbsp; <span style="color:var(--gold);">★ Best sell price anywhere!</span>':isPremium?' &nbsp;|&nbsp; <span style="color:var(--gold);">★ High demand!</span>':'')+(outside?' &nbsp;|&nbsp; <span style="color:var(--red-seal);">Risk: '+state.seizureChance+'%</span>':' &nbsp;|&nbsp; <span style="color:var(--success);">Safe ✓</span>');
+}
+function addBuyOrder(){
+  const group=state.groups.find(g=>g.id===state.activeGroupId);const myLoc=LOCATIONS.find(l=>l.id===group.locationId);
+  const sid=document.getElementById('buy-source').value;const good=document.getElementById('buy-good').value;
+  const qty=parseInt(document.getElementById('buy-qty').value)||1;const price=getBuyPrice(sid,good,group.locationId);
+  if(!price||price<=0){alert('That good is not available at this port!');return;}
+  const total=price*qty;
+  const spent=group.currentPlan.buys.reduce((s,b)=>s+b.total,0);
+  if(spent+total>group.treasury){alert('Not enough funds!\nTreasury: '+group.treasury+' 🪙\nAlready committed: '+spent+' 🪙\nThis order costs: '+total+' 🪙');return;}
+  const outside=isOutsideEmpire(sid,myLoc.empire);
+  group.currentPlan.buys.push({sourceId:sid,sourceName:getLocationName(sid),good,qty,unitPrice:price,total,outside});
+  renderPlan(group);
+  document.getElementById('buy-cost-preview').innerHTML='<span style="color:var(--success);">✓ Added '+qty+'x '+good+' to your plan. Add more or go to My Trade Plan to review.</span>';
+}
+function addSellOrder(){
+  const group=state.groups.find(g=>g.id===state.activeGroupId);const myLoc=LOCATIONS.find(l=>l.id===group.locationId);
+  const did=document.getElementById('sell-dest').value;const good=document.getElementById('sell-good').value;
+  const avail=getAvailableToSell(group);const maxQty=avail[good]||0;
+  if(maxQty<=0){alert('You have no '+good+' in your hold to sell!');return;}
+  let qty=parseInt(document.getElementById('sell-qty').value)||1;
+  if(qty>maxQty){alert('Only '+maxQty+' unit(s) of '+good+' available. Adjusted.');qty=maxQty;}
+  const price=getSellPrice(did,good,myLoc.empire);
+  if(!price||price<=0){alert('That destination will not buy this good!');return;}
+  const outside=isOutsideEmpire(did,myLoc.empire);
+  group.currentPlan.sells.push({destId:did,destName:getLocationName(did),good,qty,unitPrice:price,total:price*qty,outside});
+  renderPlan(group);updateSellInfo();
+  document.getElementById('sell-revenue-preview').innerHTML='<span style="color:var(--success);">✓ Added '+qty+'x '+good+' to your plan. Add more or go to My Trade Plan to review.</span>';
+}
+function removeBuy(i){
+  const g=state.groups.find(g=>g.id===state.activeGroupId);
+  g.currentPlan.buys.splice(i,1);
+  // Re-validate sells: remove any that now exceed available inventory
+  g.currentPlan.sells=g.currentPlan.sells.filter(s=>{
+    const avail=getAvailableToSell(g);
+    return (avail[s.good]||0)>=0; // getAvailableToSell already subtracts this sell
+  });
+  // More precisely: rebuild available without sells, then check each sell sequentially
+  const base={};
+  Object.entries(g.inventory).forEach(([gd,q])=>{base[gd]=(base[gd]||0)+q;});
+  g.currentPlan.buys.forEach(b=>{base[b.good]=(base[b.good]||0)+b.qty;});
+  const kept=[];const running={...base};
+  g.currentPlan.sells.forEach(s=>{
+    if((running[s.good]||0)>=s.qty){running[s.good]-=s.qty;kept.push(s);}
+  });
+  if(kept.length<g.currentPlan.sells.length){
+    const dropped=g.currentPlan.sells.length-kept.length;
+    g.currentPlan.sells=kept;
+    alert(dropped+' sell order(s) were removed because the goods they depended on were removed from your purchase plan.');
+  }
+  renderPlan(g);
+}
+function removeSell(i){const g=state.groups.find(g=>g.id===state.activeGroupId);g.currentPlan.sells.splice(i,1);renderPlan(g);}
+function renderPlan(group){
+  const plan=group.currentPlan;const totalCost=plan.buys.reduce((s,b)=>s+b.total,0);const totalRevenue=plan.sells.reduce((s,s2)=>s+s2.total,0);const hasRisk=plan.buys.some(b=>b.outside)||plan.sells.some(s=>s.outside);const overBudget=totalCost>group.treasury;
+  // Show carried inventory
+  const invKeys=Object.keys(group.inventory).filter(g=>group.inventory[g]>0);
+  let invHtml='';
+  if(invKeys.length){invHtml='<div style="background:var(--parchment-dark);border:1px solid var(--border-light);border-radius:3px;padding:10px 12px;margin-bottom:12px;"><div class="stat-label" style="margin-bottom:6px;">Goods in Hold (carried from previous rounds)</div>'+invKeys.map(g=>'<span class="inv-chip">'+g+' x'+group.inventory[g]+'</span>').join('')+'</div>';}
+  const bd=document.getElementById('plan-buy-list');
+  if(!plan.buys.length){bd.innerHTML=invHtml+'<p style="font-size:13px;color:var(--ink-faint);">No purchases planned.</p>';}
+  else{bd.innerHTML=invHtml+'<h3 style="margin-bottom:8px;">Purchases</h3>';bd.innerHTML+=plan.buys.map((b,i)=>'<div class="trade-summary-row"><div style="text-transform:capitalize;">'+b.good+' x'+b.qty+' from '+b.sourceName+'</div><div style="font-family:Courier Prime,monospace;font-size:11px;color:var(--ink-faint);">'+b.unitPrice+'/unit</div><div style="color:var(--red-seal);">-'+b.total+' 🪙</div><div>'+(b.outside?'<span style="color:var(--red-seal);font-size:11px;">⚠ Risk</span>':'<span style="color:var(--success);font-size:11px;">✓ Safe</span>')+' <button class="btn" style="padding:2px 6px;font-size:10px;margin-left:4px;" onclick="removeBuy('+i+')">✕</button></div></div>').join('');}
+  const sd=document.getElementById('plan-sell-list');
+  if(!plan.sells.length){sd.innerHTML='<p style="font-size:13px;color:var(--ink-faint);">No sales planned. You may hold goods for a later round.</p>';}
+  else{sd.innerHTML='<h3 style="margin-bottom:8px;">Sales</h3>';sd.innerHTML+=plan.sells.map((s,i)=>'<div class="trade-summary-row"><div style="text-transform:capitalize;">'+s.good+' x'+s.qty+' to '+s.destName+'</div><div style="font-family:Courier Prime,monospace;font-size:11px;color:var(--ink-faint);">'+s.unitPrice+'/unit</div><div style="color:var(--success);">+'+s.total+' 🪙</div><div>'+(s.outside?'<span style="color:var(--red-seal);font-size:11px;">⚠ Risk</span>':'<span style="color:var(--success);font-size:11px;">✓ Safe</span>')+' <button class="btn" style="padding:2px 6px;font-size:10px;margin-left:4px;" onclick="removeSell('+i+')">✕</button></div></div>').join('');}
+  const net=totalRevenue-totalCost;
+  let summaryHtml='<div class="grid-3" style="gap:8px;margin-bottom:10px;"><div class="stat-card"><div class="stat-label">Total Cost</div><div class="stat-value danger">-'+totalCost+' 🪙</div></div><div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value success">+'+totalRevenue+' 🪙</div></div><div class="stat-card"><div class="stat-label">Projected Net</div><div class="stat-value '+(net>=0?'gold':'danger')+'">'+(net>=0?'+':'')+net+' 🪙</div></div></div>';
+  // Check if any sells exceed available inventory
+  const base2={};
+  Object.entries(group.inventory).forEach(([g,q])=>{base2[g]=(base2[g]||0)+q;});
+  plan.buys.forEach(b=>{base2[b.good]=(base2[b.good]||0)+b.qty;});
+  const run2={...base2};let overSell=false;
+  plan.sells.forEach(s=>{if((run2[s.good]||0)<s.qty)overSell=true;else run2[s.good]-=s.qty;});
+  if(overBudget)summaryHtml+='<div class="alert alert-danger">⚠ Total purchases ('+totalCost+' 🪙) exceed your treasury ('+group.treasury+' 🪙). Please remove some purchases.</div>';
+  else if(overSell)summaryHtml+='<div class="alert alert-danger">⚠ You have planned to sell more goods than you have in your hold. Please remove some sell orders.</div>';
+  else if(hasRisk)summaryHtml+='<div class="alert alert-warning">⚠ Your plan includes outside-empire trades. You will roll extra dice for these risky transactions.</div>';
+  document.getElementById('plan-summary').innerHTML=summaryHtml;
+}
+function submitTradePlan(){
+  const group=state.groups.find(g=>g.id===state.activeGroupId);const plan=group.currentPlan;
+  if(!plan.buys.length&&!plan.sells.length){alert('Add at least one trade to your plan!');return;}
+  const totalCost=plan.buys.reduce((s,b)=>s+b.total,0);
+  if(totalCost>group.treasury){alert('Your purchases ('+totalCost+' 🪙) exceed your treasury ('+group.treasury+' 🪙). Remove some purchases before submitting.');return;}
+  // Final sell validation: sequential check against inventory + buys
+  const base3={};
+  Object.entries(group.inventory).forEach(([g,q])=>{base3[g]=(base3[g]||0)+q;});
+  plan.buys.forEach(b=>{base3[b.good]=(base3[b.good]||0)+b.qty;});
+  const run3={...base3};
+  for(const s of plan.sells){
+    if((run3[s.good]||0)<s.qty){alert('You planned to sell '+s.qty+'x '+s.good+' but only have '+(run3[s.good]||0)+' available. Go to My Trade Plan and remove that sell order.');return;}
+    run3[s.good]-=s.qty;
+  }
+  showDiceScreen(group);
+}
+function showDiceScreen(group){
+  const plan=group.currentPlan;const hasRisk=plan.buys.some(b=>b.outside)||plan.sells.some(s=>s.outside);
+  const dice=[{id:'weather',label:'⛵ Weather & Travel',threshold:3},{id:'pirates',label:'☠ Pirates & Raiders',threshold:3},{id:'imperial',label:'👁 Imperial Watchmen',threshold:Math.ceil(6*state.seizureChance/100)}];
+  document.getElementById('dice-title').textContent=hasRisk?'The Dice Are Cast — Fate Awaits!':'The Dice Are Cast!';
+  document.getElementById('dice-subtitle').textContent=hasRisk?'You traded outside your empire. The Imperial Watchmen are watching!':'Your fleet sets sail on sanctioned trade routes.';
+  const dd=document.getElementById('dice-display');dd.innerHTML='';
+  dice.forEach(d=>{const div=document.createElement('div');div.style.textAlign='center';div.innerHTML='<div class="die" id="die-'+d.id+'">?</div><div style="font-size:11px;font-family:Courier Prime,monospace;color:var(--ink-faint);margin-top:4px;max-width:60px;">'+d.label+'</div>';dd.appendChild(div);});
+  document.getElementById('dice-results').innerHTML='';document.getElementById('dice-summary').style.display='none';document.getElementById('btn-roll').style.display='inline-block';document.getElementById('btn-apply-dice').style.display='none';
+  state.pendingDice=dice;state.pendingGroup=group;showScreen('dice');
+}
+function rollAllDice(){
+  document.getElementById('btn-roll').style.display='none';const group=state.pendingGroup;const plan=group.currentPlan;const hasRisk=plan.buys.some(b=>b.outside)||plan.sells.some(s=>s.outside);
+  const results={};let delay=0;
+  state.pendingDice.forEach(d=>{
+    const el=document.getElementById('die-'+d.id);el.classList.add('rolling');
+    setTimeout(()=>{const roll=Math.ceil(Math.random()*6);el.textContent=['⚀','⚁','⚂','⚃','⚄','⚅'][roll-1];el.classList.remove('rolling');let pass=d.id==='imperial'?(!hasRisk||roll>d.threshold):roll>=d.threshold;el.classList.add(pass?'good':'bad');results[d.id]={roll,pass};if(Object.keys(results).length===state.pendingDice.length)showDiceResults(results,group);},delay+600);delay+=400;
+  });
+}
+function showDiceResults(results,group){
+  const plan=group.currentPlan;const hasRisk=plan.buys.some(b=>b.outside)||plan.sells.some(s=>s.outside);
+  const wp=results.weather.pass,pp=results.pirates.pass,ip=results.imperial.pass;
+  const rl=document.getElementById('dice-results');rl.innerHTML='';
+  [{pass:wp,label:'Weather & Travel',passText:'Fair winds! Your ships arrive safely.',failText:'Storms delayed your fleet. 15% of your cargo is lost.'},
+   {pass:pp,label:'Pirates & Raiders',passText:'Your convoy outran the raiders.',failText:'Pirates seized 20% of your purchased goods!'},
+   {pass:ip,label:'Imperial Watchmen',passText:hasRisk?'The inspectors found nothing suspicious.':'No risk — you traded within your empire.',failText:'Imperial agents have seized your outside-empire profits!'}
+  ].forEach(item=>{const div=document.createElement('div');div.className='result-row '+(item.pass?'pass':'fail');div.innerHTML='<span class="result-icon">'+(item.pass?'✓':'✗')+'</span><div><strong>'+item.label+'</strong> — '+(item.pass?item.passText:item.failText)+'</div>';rl.appendChild(div);});
+  let totalCost=plan.buys.reduce((s,b)=>s+b.total,0);let totalRevenue=plan.sells.reduce((s,s2)=>s+s2.total,0);let wl=0,pl=0,sl=0;
+  // Track per-good quantities for inventory adjustment
+  const boughtGoods={};plan.buys.forEach(b=>{boughtGoods[b.good]=(boughtGoods[b.good]||0)+b.qty;});
+  const wlGoods={},plGoods={},ilGoods={};
+  if(!wp){wl=Math.round(totalCost*0.15);totalCost+=wl;Object.entries(boughtGoods).forEach(([g,q])=>{wlGoods[g]=Math.round(q*0.15);});}
+  if(!pp){pl=Math.round(totalCost*0.20);totalCost+=pl;Object.entries(boughtGoods).forEach(([g,q])=>{const rem=q-(wlGoods[g]||0);plGoods[g]=Math.round(rem*0.20);});}
+  if(!ip&&hasRisk){const os=plan.sells.filter(s=>s.outside);sl=Math.round(os.reduce((sum,s)=>sum+s.total,0)*0.8);totalRevenue-=sl;os.forEach(s=>{ilGoods[s.good]=(ilGoods[s.good]||0)+s.qty;});}
+  const net=totalRevenue-totalCost;
+  const sd=document.getElementById('dice-summary');sd.style.display='block';sd.className='alert '+(net>=0?'alert-success':'alert-danger');
+  sd.innerHTML='<strong>Net this round: '+(net>=0?'+':'')+net+' 🪙</strong>'+(wl>0?'<br>⛵ Storm damage: -'+wl+' 🪙':'')+(pl>0?'<br>☠ Pirate loss: -'+pl+' 🪙':'')+(sl>0?'<br>👁 Imperial seizure: -'+sl+' 🪙':'');
+  state.pendingRollResult={totalCost,totalRevenue,weatherLoss:wl,pirateLoss:pl,seizureLoss:sl,net,boughtGoods,wlGoods,plGoods,ilGoods,plan};document.getElementById('btn-apply-dice').style.display='inline-block';
+}
+function applyDiceResults(){
+  const group=state.pendingGroup;const res=state.pendingRollResult;
+  group.treasury-=res.totalCost;group.treasury+=res.totalRevenue;group.treasury=Math.max(0,group.treasury);group.seized+=res.seizureLoss;
+  // Add bought goods to inventory, minus storm and pirate losses
+  Object.entries(res.boughtGoods).forEach(([g,q])=>{
+    const netQ=Math.max(0,q-(res.wlGoods[g]||0)-(res.plGoods[g]||0));
+    group.inventory[g]=(group.inventory[g]||0)+netQ;
+  });
+  // Remove sold goods from inventory (whether seized or not, they left)
+  res.plan.sells.forEach(s=>{
+    group.inventory[s.good]=Math.max(0,(group.inventory[s.good]||0)-s.qty);
+    if(!group.inventory[s.good])delete group.inventory[s.good];
+  });
+  // Clean up any zeroes
+  Object.keys(group.inventory).forEach(g=>{if(group.inventory[g]<=0)delete group.inventory[g];});
+  group.tradeLog.push({round:state.currentRound,net:res.net,cost:res.totalCost,revenue:res.totalRevenue,weatherLoss:res.weatherLoss,pirateLoss:res.pirateLoss,seizureLoss:res.seizureLoss});
+  updateHeaderBar(group);updateScoreboard();showRoundSummary(group,res);
+}
+function showRoundSummary(group,res){
+  document.getElementById('summary-phase').textContent='Round '+state.currentRound+' Summary';document.getElementById('summary-title').textContent='Round '+state.currentRound+' Complete!';
+  const heldKeys=Object.keys(group.inventory).filter(g=>group.inventory[g]>0);
+  const heldHtml=heldKeys.length?'<div style="margin-top:12px;"><div class="stat-label" style="margin-bottom:4px;">Goods Still in Hold</div>'+heldKeys.map(g=>'<span class="inv-chip">'+g+' x'+group.inventory[g]+'</span>').join('')+'</div>':'<p style="font-size:13px;color:var(--ink-faint);margin-top:8px;">Hold is empty.</p>';
+  document.getElementById('summary-ledger').innerHTML='<div class="stat-card" style="margin-bottom:8px;"><div class="stat-label">Goods Purchased</div><div class="stat-value danger">-'+res.totalCost+' 🪙</div></div><div class="stat-card" style="margin-bottom:8px;"><div class="stat-label">Goods Sold</div><div class="stat-value success">+'+res.totalRevenue+' 🪙</div></div>'+(res.weatherLoss>0?'<div class="alert alert-warning" style="margin-bottom:6px;">⛵ Storm damage: -'+res.weatherLoss+' 🪙</div>':'')+(res.pirateLoss>0?'<div class="alert alert-danger" style="margin-bottom:6px;">☠ Pirate loss: -'+res.pirateLoss+' 🪙</div>':'')+(res.seizureLoss>0?'<div class="alert alert-danger" style="margin-bottom:6px;">👁 Seized by Crown: -'+res.seizureLoss+' 🪙</div>':'')+'<div class="stat-card"><div class="stat-label">Net This Round</div><div class="stat-value '+(res.net>=0?'gold':'danger')+'">'+(res.net>=0?'+':'')+res.net+' 🪙</div></div>'+heldHtml;
+  document.getElementById('summary-totals').innerHTML='<div class="grid-2" style="gap:8px;"><div class="stat-card"><div class="stat-label">Total Treasury</div><div class="stat-value gold">'+group.treasury+' 🪙</div></div><div class="stat-card"><div class="stat-label">Total Seized</div><div class="stat-value danger">'+group.seized+' 🪙</div></div></div>';
+  document.getElementById('summary-log').innerHTML=group.tradeLog.map(l=>'<div class="log-entry '+(l.net>=0?'profit':'loss')+'">Round '+l.round+': '+(l.net>=0?'+':'')+l.net+' 🪙 (cost '+l.cost+', revenue '+l.revenue+')</div>').join('');
+  const isLast=state.currentRound>=state.numRounds;const btn=document.getElementById('btn-next-round');
+  if(isLast){btn.textContent='🏆 View Final Results';btn.onclick=showFinalResults;}else{btn.textContent='→ Round '+(state.currentRound+1);btn.onclick=nextRound;}
+  showScreen('round-summary');
+}
+function nextRound(){
+  state.currentRound++;
+  // Seizure risk: round 1=20%, round 2=30%, round 3=40%, round 4=50%
+  state.seizureChance=Math.min((state.currentRound+1)*10,100);
+  const sl=document.getElementById('seizure-live');if(sl)sl.value=state.seizureChance;
+  fluctuatePrices();
+  const group=state.groups.find(g=>g.id===state.activeGroupId);
+  group.currentPlan={buys:[],sells:[]};
+  renderTradeScreen(group);showScreen('trade');switchTab('ttab-buy');
+}
+function showFinalResults(){
+  const sorted=[...state.groups].sort((a,b)=>b.treasury-a.treasury);
+  document.getElementById('final-scoreboard').innerHTML=sorted.map((g,i)=>{const loc=LOCATIONS.find(l=>l.id===g.locationId);return '<div class="score-row"><div class="score-rank '+(i===0?'first':'')+'">'+( i+1)+'</div><div><div class="score-name">'+g.name+'</div><div class="score-location">'+loc.name+' <span class="empire-tag empire-'+loc.empire+'" style="font-size:9px;">'+loc.empire+'</span></div></div><div class="score-amount">'+g.treasury+' 🪙</div>'+(g.seized>0?'<div style="font-size:12px;color:var(--red-seal);font-family:Courier Prime,monospace;">-'+g.seized+' seized</div>':'')+'</div>';}).join('');
+  const top=sorted[0];const tl=LOCATIONS.find(l=>l.id===top.locationId);const ms=[...state.groups].sort((a,b)=>b.seized-a.seized)[0];const msl=LOCATIONS.find(l=>l.id===ms.locationId);
+  document.getElementById('final-insights').innerHTML='<strong>Discussion Starters:</strong><br>🏆 '+top.name+' ('+tl.name+') earned the most — what strategies did they use?<br>'+(ms.seized>0?'⚠ '+ms.name+' ('+msl.name+') had the most goods seized. Was the risk worth it?<br>':'')+'💬 Did groups from the Netherlands have an advantage? Why might the Dutch empire have lower tax rates?<br>🌍 How did the periphery regions (West Africa, India, China) affect your decisions?<br>📜 How did staying within your empire compare to the risk of trading outside it?<br>🧭 Which goods were most profitable? Were those goods produced locally or imported?';
+  showScreen('final');
+}
+function renderMarketTable(tableId){
+  const tid=tableId||'market-price-table';const table=document.getElementById(tid);if(!table)return;
+  const rows=Object.entries(state.prices).map(([g,p])=>{const pct=Math.round(((p.buy/BASE_PRICES[g].buy)-1)*100);const arrow=pct>0?'<span style="color:var(--red-seal);">▲'+pct+'%</span>':pct<0?'<span style="color:var(--success);">▼'+Math.abs(pct)+'%</span>':'—';return '<tr><td style="text-transform:capitalize;font-weight:500;">'+g+'</td><td>'+p.buy+' 🪙</td><td>'+p.sell+' 🪙</td><td>'+arrow+'</td></tr>';}).join('');
+  table.innerHTML='<thead><tr><th>Good</th><th>Buy Price</th><th>Sell Price</th><th>Change</th></tr></thead><tbody>'+rows+'</tbody>';
+}
+function fluctuatePrices(){Object.keys(state.prices).forEach(g=>{const f=0.85+Math.random()*0.35;state.prices[g].buy=Math.round(BASE_PRICES[g].buy*f);state.prices[g].sell=Math.round(BASE_PRICES[g].sell*f);if(state.prices[g].sell<=state.prices[g].buy)state.prices[g].sell=state.prices[g].buy+Math.round(state.prices[g].buy*0.2);});renderMarketTable();}
+function resetPrices(){state.prices=JSON.parse(JSON.stringify(BASE_PRICES));renderMarketTable();}
+function renderStudentPortGuide(){
+  const wrap=document.getElementById('student-port-guide');if(!wrap)return;
+  wrap.innerHTML=LOCATIONS.map(l=>{
+    const sbP=state.prices[l.specialBuy]||BASE_PRICES[l.specialBuy];
+    const ssP=state.prices[l.specialSell]||BASE_PRICES[l.specialSell];
+    const sbPrice=sbP?Math.round(sbP.buy*0.28):'—';
+    const ssPrice=ssP?Math.round(ssP.sell*1.45):'—';
+    return '<div style="border:1px solid var(--border-light);border-radius:3px;padding:10px 12px;margin-bottom:8px;background:var(--parchment-dark);">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'+
+      '<strong style="font-size:14px;">'+l.name+'</strong>'+
+      '<span class="empire-tag empire-'+l.empire+'" style="font-size:9px;">'+l.empire+'</span></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">'+
+      '<div style="background:var(--parchment);border:1px solid var(--border-light);border-radius:3px;padding:6px 10px;">'+
+      '<div style="font-family:Courier Prime,monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--success);margin-bottom:3px;">★ Best Buy Here</div>'+
+      '<span style="text-transform:capitalize;font-weight:600;">'+l.specialBuy+'</span>'+
+      ' &mdash; <span style="color:var(--success);">'+sbPrice+' 🪙</span></div>'+
+      '<div style="background:var(--parchment);border:1px solid var(--border-light);border-radius:3px;padding:6px 10px;">'+
+      '<div style="font-family:Courier Prime,monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:3px;">★ Best Sell Here</div>'+
+      '<span style="text-transform:capitalize;font-weight:600;">'+l.specialSell+'</span>'+
+      ' &mdash; <span style="color:var(--gold);">'+ssPrice+' 🪙</span></div></div></div>';
+  }).join('');
+}
+function renderReferenceTable(){
+  const wrap=document.getElementById('reference-table-wrap');if(!wrap)return;
+  wrap.innerHTML=LOCATIONS.map(l=>'<div style="border:1px solid var(--border-light);border-radius:3px;padding:10px 12px;margin-bottom:8px;background:var(--parchment-dark);"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><strong>'+l.name+'</strong><span class="empire-tag empire-'+l.empire+'" style="font-size:9px;">'+l.empire+'</span><span class="region-badge">'+l.tier+'</span></div><div style="font-size:12px;color:var(--ink-faint);margin-bottom:4px;">'+l.lore+'</div><div style="font-size:12px;margin-bottom:2px;"><strong>Locally produced:</strong> '+l.localGoods.join(', ')+'</div><div style="font-size:12px;margin-bottom:2px;"><strong>Sells (exports):</strong> '+l.exportGoods.join(', ')+' &nbsp;|&nbsp; <strong>Tax:</strong> '+Math.round(l.taxRate*100)+'%</div><div style="font-size:12px;margin-bottom:2px;color:var(--success);"><strong>★ Best buy deal:</strong> '+(l.specialBuy||'—')+'</div><div style="font-size:12px;margin-bottom:2px;color:#8b5e00;"><strong>★ Best sell deal:</strong> '+(l.specialSell||'—')+'</div><div style="font-size:12px;color:var(--gold);"><strong>High-demand imports:</strong> '+l.importPremium.join(', ')+'</div></div>').join('');
+}
+function applySeizureChange(){
+  const v=parseInt(document.getElementById('seizure-live').value);
+  if(isNaN(v)||v<0||v>100)return;
+  state.seizureChance=v;
+  // Also keep the setup input in sync
+  const setupInput=document.getElementById('seizure-chance');
+  if(setupInput)setupInput.value=v;
+  updateScoreboard();
+}
+function updateScoreboard(){
+  if(!state.simStarted)return;const sorted=[...state.groups].sort((a,b)=>b.treasury-a.treasury);
+  document.getElementById('scoreboard-list').innerHTML=sorted.map((g,i)=>{const loc=LOCATIONS.find(l=>l.id===g.locationId);return '<div class="score-row"><div class="score-rank '+(i===0?'first':'')+'">'+( i+1)+'</div><div class="score-name">'+g.name+'</div><div class="score-location">'+loc.name+'</div><div class="score-amount">'+g.treasury+' 🪙</div></div>';}).join('');
+}
+function resetSimulation(){
+  state={numGroups:5,numRounds:4,startTreasury:300,seizureChance:30,currentRound:0,groups:[],prices:{},assignedLocations:[],activeGroupId:null,simStarted:false};
+  state.prices=JSON.parse(JSON.stringify(BASE_PRICES));document.getElementById('header-group-info').style.display='none';document.getElementById('header-stats').style.display='none';
+  renderMarketTable();renderReferenceTable();showScreen('teacher');switchTab('tab-setup');
+}
+init();
+</script>
+</body>
+</html>
